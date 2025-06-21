@@ -1,0 +1,19 @@
+#include "imagen1.h"
+#include "imagen2.h"
+#include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+
+int main()
+{
+	// en image1.h e imagen2.h están los arreglos de las imágenes
+	// los arreglos son de tipo: unsigned char
+	
+	// cabecera1[] tiene 15 bytes que son la cabecera de la imagen
+	
+	// pixels1[4]  tiene el pixel 4 de la imagen 1
+	// pixels1[5]  tiene el pixel 5 de la imagen 1
+	
+	// pixels2[10]  tiene el pixel 10 de la imagen 2
+}
