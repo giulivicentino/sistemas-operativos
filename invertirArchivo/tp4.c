@@ -1,0 +1,75 @@
+#include <sys/types.h>
+#include <sys/mman.h>
+#include <sys/stat.h> /* For mode constants */
+#include <fcntl.h> /* For O_* constants */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+int archivo_obtener_tamanio(const char nombre_de_archivo[]);
+
+int main() {
+    int tamanio;
+    char *puntero;
+    char nombre_de_archivo[] = "/home/giulivicentino/Escritorio/recuSO/invertirArchivo/test.txt"; //"/usr/share/doc/libsdl1.2-dev/docs.html"; 
+
+    tamanio = archivo_obtener_tamanio(nombre_de_archivo);
+    if (tamanio < 0) {
+        printf("No se pudo obtener el tamaño del archivo\n");
+        return 1;
+    }
+
+    int fd = open(nombre_de_archivo, O_RDONLY);
+    if (fd == -1) {
+        printf("Error al abrir el archivo en main\n");
+        return 1;
+    }
+
+    puntero = malloc(tamanio);
+    if (puntero == NULL) {
+        printf("Error al asignar memoria\n");
+        close(fd);
+        return 1;
+    }
+    
+    int estado_read = read(fd, puntero, tamanio);
+    if (estado_read < 0) {
+        printf("%d\n",estado_read);
+        printf("Error al leer el archivo completo\n");
+        free(puntero);
+        close(fd);
+        return 1;
+    }
+
+    //luego de hacerle malloc al puntero lo podemos utilizar como un arreglo
+    for (int i = tamanio - 1; i >= 0; i--) {
+        printf("%c", puntero[i]);
+    }
+
+    free(puntero);
+    close(fd);
+    return 0;
+}
+
+int archivo_obtener_tamanio(const char nombre_de_archivo[]) {
+    int tamanio = 0;
+    int estado_read = 1;
+    char buffer;
+
+    int fd = open(nombre_de_archivo, O_RDONLY);
+
+    while (estado_read > 0) {
+        estado_read = read(fd, &buffer, 1);
+
+        if (estado_read == -1){
+            printf("Error al leer archivo, error: %d\n", estado_read);
+            return -1;
+        }
+
+        tamanio++;
+    }
+    close(fd);
+
+    return tamanio;
+}
