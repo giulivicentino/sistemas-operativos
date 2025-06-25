@@ -1,0 +1,76 @@
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+
+/*NOTA 2: Si se quiere utilizar la memoria compartida como si fuese un arreglo, se puede hacer así:
+int * arreglo = (int *) ptr;
+arreglo[1] = 3; /* se modifica el segundo entero en la memoria compartida */
+void bubbleSort(int arr[], int n);
+void swap(int* arr, int i, int j);
+
+ 
+int main() {
+  // abre memoria compartida
+  int shm_fd;
+  int *ptr;
+
+  shm_fd= shm_open("OS", O_RDWR, 0666);
+  ptr = (int*)mmap(0,4,PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd,0); //lee solo los primeros 4 bytes
+  if (ptr == MAP_FAILED) {
+    printf("Map failed\n");
+    return -1;
+  }
+
+  while(ptr[0] == 0) { //el puntero unicamente tiene los primero 4 bytes que, una vez este creada la memoria compartida, van a indicar el tamaño del archivo
+    // hasta que cambie
+    usleep(1000);
+  }
+
+int SIZE = ptr[0];
+  printf("SIZE:%d\n", SIZE);
+
+  munmap(ptr, 4);//resetea el mapeo a ptr
+  
+  ptr = (int*)mmap(0,SIZE,PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd,0);//vuelve a mapear pero ahora con el tamaño del archivo
+  if (ptr == MAP_FAILED) {
+    printf("Map failed\n");
+    return -1;
+  }
+
+  //muestra el archivo desordenado
+  printf("Contenido antes de ordenar:\n");
+  int totalInts = (SIZE - 4) / 4;
+  for (int i = 1; i <= totalInts; i++) {
+    printf("%d, ", ptr[i]);
+  }
+  printf("\n");
+
+  int buffer[(SIZE - 4) / 4];  // cantidad de enteros (excluyendo el inidicador)
+
+  memcpy(buffer, &ptr[1], SIZE - 4);  // copiar desde ptr[1] (donde están los datos) HASTA el buffer
+  bubbleSort(buffer, (SIZE - 4) / 4); //los ordena
+  memcpy(&ptr[1], buffer, SIZE - 4);  // copiar desde el buffer HASTA de vuelta a la memoria compartida en ptr[1]
+  
+  ptr[0] = 1; //le avisa al primer proceso que ya puede guardar el archivo
+}
+
+
+//metodo de ordenamiento bubble sort
+void swap(int* arr, int i, int j) {
+    int temp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = temp;
+}
+
+void bubbleSort(int arr[], int n) {
+    for (int i = 0; i < n - 1; i++) {  
+        for (int j = 0; j < n - i - 1; j++) {
+            if (arr[j] > arr[j + 1])
+                swap(arr, j, j + 1);
+        }
+    }
+}
