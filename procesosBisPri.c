@@ -16,7 +16,7 @@ void parcial2024(){ //programa principal
   i = atoi(buf); //pasa de char a int
   printf("el numero ingresado entero es %d \n",i);
 
-  //inicia el proceso 2
+  //inicia el proceso 2 , cuando ya ingreso el numero antes
   resume(pid2);
   send(pid2,i); // le mando el numero que ingresaron al proceso 2
   int msg2 = receive();
