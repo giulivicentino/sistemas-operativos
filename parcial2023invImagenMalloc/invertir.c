@@ -1,0 +1,88 @@
+#include <sys/types.h>
+#include <sys/mman.h>
+#include <sys/stat.h> /* For mode constants */
+#include <fcntl.h> /* For O_* constants */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+
+int calcular_tamanio(char ruta[]);
+
+int main(){
+  int SIZE;
+  char *ptr;
+  char ruta[] = "/home/giulivicentino/Escritorio/recuSO/parcial2023invImagenMalloc/cat.pgm";
+
+  SIZE = calcular_tamanio(ruta);
+  if(SIZE <0){
+     printf("No se pudo obtener el tamaño del archivo\n");
+        return 1;
+  }
+
+  //abre el archivo y guarda el descriptor de archivo en fd
+ int fd = open(ruta, O_RDONLY);
+    if (fd == -1) {
+        printf("Error al abrir el archivo en main\n");
+        return 1;
+    }
+    //MEMORIA DINAMICA
+ ptr = malloc(SIZE); //ajusta el tamaño del puntero a SIZE
+    if (ptr == NULL)
+      {
+        printf("ERROR malloc\n");
+        close(fd);
+        exit(1);
+      }
+
+    //lee el archivo en fd
+    int estado_read = read(fd, ptr, SIZE); //guarda el contenido de fd en el puntero ptr
+    if (estado_read < 0) {
+        printf("%d\n",estado_read);
+        printf("Error al leer el archivo completo\n");
+        free(ptr);
+        close(fd);
+        return 1;
+    }
+ printf("Direccion de la variable: %p \n", ptr); 
+ // Creamos el nuevo archivo
+    int fd2 = open("/home/giulivicentino/Escritorio/recuSO/parcial2023invImagenMalloc/cat2.pgm" , O_RDWR | O_TRUNC | O_CREAT, S_IRWXU);
+    if (fd2 == -1)
+    {
+        perror("Error al crear el archivo de destino");
+        free(ptr);
+        return 1;
+    }
+    //escribo la cabecera
+ write(fd2, ptr, 15);
+
+ //escribo la imagen al revez
+ int k;
+  for(k = SIZE; k >= 15; k--){
+    write(fd2, &ptr[k], 1); 
+  }
+  printf("se terminoooo \n"); 
+ 
+  close(fd); 
+  close(fd2);   
+  
+}
+
+int calcular_tamanio(char ruta[]) {
+  int tamanio = 0;
+  int estado_read = 1;
+  char buffer;
+  int fd = open(ruta, O_RDONLY);
+  while (estado_read > 0) {
+    estado_read = read(fd, &buffer, 1);
+
+    if (estado_read == -1){
+      printf("Error al leer archivo, error: %d\n", estado_read);
+      return -1;
+    }
+    tamanio++;
+  }
+  close(fd);
+  return tamanio;
+}
