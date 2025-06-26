@@ -14,65 +14,88 @@ int main(int argc, char *argv[]){
   }
   
   printf("argumento1: %s argumento2: %s \n", argv[1], argv[2]);
-  /* etc */
 
-  int f1 = open(argv[1], O_RDONLY);
+  int f1 = open(argv[1], O_RDONLY); // abro el archivo argv[1] como solo lectura
   printf("open: %d",f1);
-    /* abrir aqui el archivo argv[1] como solo lectura */
+ 
 
-  /* creamos el nuevo archivo */
- int  f2 = open(argv[2], O_RDWR | O_TRUNC | O_CREAT, S_IRWXU);
+  int  f2 = open(argv[2], O_RDWR | O_TRUNC | O_CREAT, S_IRWXU);  // creamos el nuevo archivo 
 
- /*obtengo el tamaño para usarlo en el malloc y despues para leer el archivo*/
- int tamanio = archivo_obtener_tamanio(argv[1]);
-if (tamanio < 0) {
-        printf("No se pudo obtener el tamaño del archivo\n");
-        return 1;
-    }
+  //obtengo el tamaño para usarlo en el malloc y despues para leer el archivo*
+  int tamanio = archivo_obtener_tamanio(argv[1]);
+  if (tamanio < 0) {
+    printf("No se pudo obtener el tamaño del archivo\n");
+    return 1;
+  }
 
-/* reservo la memoria del puntero*/
- char *puntero = malloc(tamanio);
+  // reservo la memoria del puntero
+  char *puntero = malloc(tamanio);
   if (puntero == NULL) {
-        printf("Error al asignar memoria\n");
-        close(f1);
-        return 1;
-    }
+    printf("Error al asignar memoria\n");
+    close(f1);
+    close(f2);
+    return 1;
+  }
 
- /*lee todos los bytes */
-  int estado_read = read(f1,puntero,tamanio); // guardo la data del archivo 1 en el puntero
+  //lee todos los bytes
+  int estado_read = read(f1,puntero,tamanio); // guardo la data del archivo 1(por f1) en el puntero
   if (estado_read < 0) {
-        printf("%d\n",estado_read);
-        printf("Error al leer el archivo completo\n");
-        free(puntero);
-        close(f1);
-        return 1;
-    }
+    printf("%d\n",estado_read);
+    perror("Error al leer el archivo origen");
+    free(puntero);
+    close(f1);
+    close(f2);
+    return 1;
+  }
+  //escribe todos los bytes
+  int estado_write =  write( f2, puntero ,tamanio);
+  if (estado_write < 0) {
+    printf("%d\n",estado_write);
+    perror("Error al escribir en el archivo destino");
+    free(puntero);
+    close(f1);
+    close(f2);
+    return 1;
+  }
+  
+  printf("que writeoooo :     %d",estado_write);
+  printf("Copia completada correctamente.\n");
 
-  int w1=  write( f2, puntero ,tamanio);
-  //int w1=  write( f2, f1 ,tamanio);
-  printf("que writeoooo :     %d",w1);
+    free(puntero);
+    close(f1);
+    close(f2);
+    return 0;
 }
 
 
 
 int archivo_obtener_tamanio(const char nombre_de_archivo[]) {
-    int tamanio = 0;
-    int estado_read = 1;
-    char buffer;
+  int tamanio = 0;
+  int estado_read = 1;
+  char buffer;
 
-    int fd = open(nombre_de_archivo, O_RDONLY);
+  int fd = open(nombre_de_archivo, O_RDONLY);
 
-    while (estado_read > 0) {
-        estado_read = read(fd, &buffer, 1);
+  while (estado_read > 0) {
+    estado_read = read(fd, &buffer, 1);
 
-        if (estado_read == -1){
-            printf("Error al leer archivo, error: %d\n", estado_read);
-            return -1;
-        }
-
-        tamanio++;
+    if (estado_read == -1){
+      printf("Error al leer archivo, error: %d\n", estado_read);
+      return -1;
     }
-    close(fd);
 
-    return tamanio;
+    tamanio++;
+  }
+  close(fd);
+
+  return tamanio;
 }
+
+/*PARA EJECUTARLO
+
+./copy archivo_origen archivo_destino
+Ejemplo:
+./copy principe.txt nuevo_principe.txt
+
+*/
+
