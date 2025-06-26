@@ -5,111 +5,97 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-int file_get_size(const char *filename);
+int archivo_obtener_tamanio(const char nombre_de_archivo[]);
 
-int main(int argc, char *argv[])
-{
-    //char archivoOrigen[] = argv[1];
-    if (argc < 3) {
-        printf("error: al menos ejecutar con 2 argumentos\n");
-        exit(1);
-    }
+int main(int argc, char *argv[]){
+  if (argc < 3) {
+    printf("error: al menos ejecutar con 2 argumentos\n");
+    exit(1);
+  }
+  
+  printf("argumento1: %s argumento2: %s \n", argv[1], argv[2]);
 
-    printf("argumento1: %s     argumento2: %s \n", argv[1], argv[2]);
+  int f1 = open(argv[1], O_RDONLY); // abro el archivo argv[1] como solo lectura
+  printf("open: %d",f1);
+ 
 
-    int tamano = file_get_size(argv[1]);
-    if (tamano == -1)
-    {
-        return 1; 
-    }
-    
+  int  f2 = open(argv[2], O_RDWR | O_TRUNC | O_CREAT, S_IRWXU);  // creamos el nuevo archivo 
 
-    int f1 = open(argv[1], O_RDONLY);
-    if (f1 == -1)
-    {
-        perror("Error al abrir el archivo de origen");
-        return 1;
-    }
+  //obtengo el tamaño para usarlo en el malloc y despues para leer el archivo*
+  int tamanio = archivo_obtener_tamanio(argv[1]);
+  if (tamanio < 0) {
+    printf("No se pudo obtener el tamaño del archivo\n");
+    return 1;
+  }
 
-    // Reservamos memoria para guardar el contenido
-    char *contenido = malloc(tamano);
-    if (contenido == NULL)
-    {
-        printf("ERROR malloc\n");
-        close(f1);
-        exit(1);
-    }
-    // Leemos el contenido completo
-    int totalLeido = 0;
-    while (totalLeido < tamano)
-    {
-        int leido = read(f1, contenido + totalLeido, tamano - totalLeido);
-        if (leido == -1)
-        {
-            perror("Error al leer el archivo");
-            free(contenido);
-            close(f1);
-            return 1;
-        }
-        totalLeido += leido;
-    }
-
-
-    // Creamos el nuevo archivo
-    int f2 = open(argv[2], O_RDWR | O_TRUNC | O_CREAT, S_IRWXU);
-    if (f2 == -1)
-    {
-        perror("Error al crear el archivo de destino");
-        free(contenido);
-        return 1;
-    }
-
-    // Escribimos el contenido en el nuevo archivo
-    int totalEscrito = 0;
-    while (totalEscrito < tamano)
-    {
-        int escrito = write(f2, contenido + totalEscrito, tamano - totalEscrito);
-        if (escrito == -1)
-        {
-            perror("Error al escribir en el archivo destino");
-            free(contenido);
-            close(f2);
-            return 1;
-        }
-        totalEscrito += escrito;
-    }
-
-    // Liberamos memoria y cerramos el archivo destino
-    free(contenido);
+  // reservo la memoria del puntero
+  char *puntero = malloc(tamanio);
+  if (puntero == NULL) {
+    printf("Error al asignar memoria\n");
+    close(f1);
     close(f2);
+    return 1;
+  }
 
+  //lee todos los bytes
+  int estado_read = read(f1,puntero,tamanio); // guardo la data del archivo 1(por f1) en el puntero
+  if (estado_read < 0) {
+    printf("%d\n",estado_read);
+    perror("Error al leer el archivo origen");
+    free(puntero);
+    close(f1);
+    close(f2);
+    return 1;
+  }
+  //escribe todos los bytes
+  int estado_write =  write( f2, puntero ,tamanio);
+  if (estado_write < 0) {
+    printf("%d\n",estado_write);
+    perror("Error al escribir en el archivo destino");
+    free(puntero);
+    close(f1);
+    close(f2);
+    return 1;
+  }
+  
+  printf("que writeoooo :     %d",estado_write);
+  printf("Copia completada correctamente.\n");
+
+    free(puntero);
+    close(f1);
+    close(f2);
     return 0;
 }
-int file_get_size(const char *filename)
-{
-    int fd = open(filename, O_RDONLY);
-    if (fd == -1)
-    {
-        perror("Error al abrir archivo en file_get_size");
-        return -1;
+
+
+
+int archivo_obtener_tamanio(const char nombre_de_archivo[]) {
+  int tamanio = 0;
+  int estado_read = 1;
+  char buffer;
+
+  int fd = open(nombre_de_archivo, O_RDONLY);
+
+  while (estado_read > 0) {
+    estado_read = read(fd, &buffer, 1);
+
+    if (estado_read == -1){
+      printf("Error al leer archivo, error: %d\n", estado_read);
+      return -1;
     }
 
-    int tamano = 0;
-    char byte;
-    int estado = 1;
+    tamanio++;
+  }
+  close(fd);
 
-    while ((estado = read(fd, &byte, 1)) > 0)
-    {
-        tamano += 1;
-    }
-
-    if (estado == -1)
-    {
-        perror("Error al leer en file_get_size");
-        close(fd);
-        return -1;
-    }
-
-    close(fd);
-    return tamano;
+  return tamanio;
 }
+
+/*PARA EJECUTARLO
+
+./copy archivo_origen archivo_destino
+Ejemplo:
+./copy principe.txt nuevo_principe.txt
+
+*/
+
